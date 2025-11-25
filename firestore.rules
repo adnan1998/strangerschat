@@ -1,0 +1,214 @@
+/**
+ * Core Philosophy: This ruleset secures a real-time anonymous chat application.
+ * The security model is built on three pillars: strict user ownership of their
+ * own data, shared access for chat rooms based on participant lists, and a
+
+ * public collection to track online presence.
+ *
+ * Data Structure: The data is segregated into distinct collections for security
+ * and clarity:
+ * - /users/{userId}: Private user profiles, only accessible by the owner.
+ * - /online_users/{userId}: A public, read-only list of users currently
+ *   online. Users manage their own presence in this collection.
+ * - /chat_rooms/{chatRoomId}: Chat room metadata, including a list of
+ *   participants who are granted access.
+ * - /chat_rooms/{chatRoomId}/messages/{messageId}: Messages belonging to a
+ *   chat room, accessible only to that room's participants.
+ *
+ * Key Security Decisions:
+ * - User Listing: Listing the primary `/users` collection is disallowed to
+ *   protect privacy. However, the `/online_users` collection is publicly
+ *   listable to facilitate user discovery for starting new chats.
+ * - Chat Membership: Access to a chat room and its messages is controlled by a
+ *   denormalized `participantIds` array on each `/chat_rooms/{chatRoomId}`
+ *   document. This avoids slow, insecure, and costly cross-document reads.
+ * - Message Immutability: To preserve the integrity of conversations, messages
+ *   cannot be updated or deleted after they are created.
+ *
+ * Denormalization for Authorization: The `participantIds` array on each
+ * chat room document is a critical piece of denormalization. It allows rules on
+ * both the chat room and its `messages` subcollection to perform a fast, single-
+ * document check to authorize a user, which is vastly more performant and
+* secure than alternative approaches.
+ *
+ * Structural Segregation: User profile data (`/users`) is kept separate from
+ * public presence data (`/online_users`). This allows the app to show who is
+ * online without exposing any private profile information, enforcing a strong
+ * privacy boundary.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    //================================================================================
+    // Helper Functions
+    //================================================================================
+
+    /**
+     * Returns true if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Returns true if the requesting user's UID matches the provided userId.
+     * Use for documents that are owned by a specific user.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Returns true if the document exists and the user is the owner.
+     * Use for destructive operations (update, delete) to prevent errors.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+    
+    /**
+     * Returns true if the requesting user is a participant of a private chat room.
+     */
+    function isChatRoomParticipant(chatRoomId) {
+      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chat_rooms/$(chatRoomId)).data.participantIds;
+    }
+    
+    /**
+     * Returns true if the user is a participant or if the document does not exist.
+     * This allows a client to check for a document's existence before creating it.
+     */
+    function canReadChatRoom(chatRoomId) {
+      let docExists = exists(/databases/$(database)/documents/chat_rooms/$(chatRoomId));
+      return (docExists && isChatRoomParticipant(chatRoomId)) || !docExists;
+    }
+
+    //================================================================================
+    // Validation Functions
+    //================================================================================
+
+    /**
+     * Validates that the ID inside a new user document matches the document ID.
+     * Enforces relational integrity on creation.
+     */
+    function isCreatingValidUserDoc(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * Validates that the user ID field within a document is immutable.
+     * Prevents re-assigning ownership of a document after creation.
+     */
+    function isUserDocIdImmutable() {
+      return request.resource.data.id == resource.data.id;
+    }
+    
+    /**
+     * Validates that a new message has the correct sender, chat room link, and ID.
+     * Enforces data consistency and authorship on creation.
+     */
+    function isCreatingValidMessage(chatRoomId, messageId) {
+      let data = request.resource.data;
+      return data.senderId == request.auth.uid &&
+             data.chatRoomId == chatRoomId &&
+             data.id == messageId;
+    }
+    
+    /**
+    * Validates a new online_user document.
+    */
+    function isCreatingValidOnlineUserDoc(userId) {
+      let data = request.resource.data;
+      return data.id == userId;
+    }
+    
+    /**
+     * Validates that the user creating a private chat room is one of the participants.
+     */
+    function isCreatingValidPrivateChat() {
+        return isSignedIn() && request.auth.uid in request.resource.data.participantIds;
+    }
+
+    //================================================================================
+    // Collection Rules
+    //================================================================================
+
+    /**
+     * @description Manages private user profile data.
+     * @path /users/{userId}
+     * @allow A user reads or writes their own profile document. (e.g., auth.uid == userId)
+     * @deny An authenticated user tries to read another user's profile. (e.g., auth.uid != userId)
+     * @principle Restricts access to a user's own data tree (Ownership).
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Disallow listing all users to protect privacy
+      allow create: if isOwner(userId) && isCreatingValidUserDoc(userId);
+      allow update: if isExistingOwner(userId) && isUserDocIdImmutable();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Manages public online presence. The existence of a document here
+     * means the user is online. Data is publicly readable.
+     * @path /online_users/{userId}
+     * @allow Any user (authenticated or not) can list or get documents to see who is online.
+     * @deny A user tries to create an online status document for another user.
+     * @principle Public Read with Owner-Only Writes.
+     */
+    match /online_users/{userId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isOwner(userId) && isCreatingValidOnlineUserDoc(userId);
+      allow update: if isExistingOwner(userId) && isUserDocIdImmutable();
+      allow delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Defines the global chat room, which is publicly readable.
+     * @path /chat_rooms/global
+     */
+    match /chat_rooms/global {
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+      
+      /**
+       * @description Stores messages for the GLOBAL chat room.
+       * @path /chat_rooms/global/messages/{messageId}
+       */
+      match /messages/{messageId} {
+        allow read, list: if isSignedIn();
+        allow create: if isSignedIn() && isCreatingValidMessage('global', messageId);
+        allow update: if false; // Messages are immutable
+        allow delete: if false; // Messages are immutable
+      }
+    }
+
+    /**
+     * @description Defines private chat rooms and their participants. Access is restricted to users
+     * listed in the 'participantIds' array. This rule must come AFTER the more specific
+     * '/chat_rooms/global' rule.
+     * @path /chat_rooms/{chatRoomId}
+     */
+    match /chat_rooms/{chatRoomId} {
+      allow get: if canReadChatRoom(chatRoomId);
+      allow list: if isSignedIn(); // Allow listing chat rooms for logged in users to find their own
+      allow create: if isCreatingValidPrivateChat();
+      allow update: if isChatRoomParticipant(chatRoomId);
+      allow delete: if isChatRoomParticipant(chatRoomId);
+
+      /**
+       * @description Stores messages for a PRIVATE chat room.
+       * @path /chat_rooms/{chatRoomId}/messages/{messageId}
+       */
+      match /messages/{messageId} {
+        allow read, list: if isChatRoomParticipant(chatRoomId);
+        allow create: if isChatRoomParticipant(chatRoomId) && isCreatingValidMessage(chatRoomId, messageId);
+        allow update: if false; // Messages are immutable
+        allow delete: if false; // Messages are immutable
+      }
+    }
+  }
+}

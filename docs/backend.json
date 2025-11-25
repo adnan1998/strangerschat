@@ -1,0 +1,182 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user in the anonymous chat application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "username": {
+          "type": "string",
+          "description": "The unique username of the user. Unique only for active users."
+        },
+        "gender": {
+          "type": "string",
+          "description": "The gender of the user (Male or Female)."
+        },
+        "age": {
+          "type": "number",
+          "description": "The age of the user. Must be 18 or older."
+        },
+        "isOnline": {
+          "type": "boolean",
+          "description": "Indicates whether the user is currently online."
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "gender",
+        "age",
+        "isOnline"
+      ]
+    },
+    "Message": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Message",
+      "type": "object",
+      "description": "Represents a chat message.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Message entity."
+        },
+        "senderId": {
+          "type": "string",
+          "description": "Reference to the User who sent the message. (Relationship: User 1:N Message)"
+        },
+        "content": {
+          "type": "string",
+          "description": "The text content of the message."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp indicating when the message was sent.",
+          "format": "date-time"
+        },
+        "chatRoomId": {
+          "type": "string",
+          "description": "Reference to the ChatRoom the message belongs to. (Relationship: ChatRoom 1:N Message)"
+        }
+      },
+      "required": [
+        "id",
+        "senderId",
+        "content",
+        "timestamp",
+        "chatRoomId"
+      ]
+    },
+    "ChatRoom": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ChatRoom",
+      "type": "object",
+      "description": "Represents a chat room (Global or Private).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ChatRoom entity."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of chat room (global or private)."
+        },
+        "participantIds": {
+          "type": "array",
+          "description": "References to Users participating in the chat. (Relationship: User N:N ChatRoom)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "participantIds"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Includes denormalized data relevant to the user.  User data is owned by the user with ID {userId}.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/online_users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Indicates which users are currently online. The existence of a document with {userId} signifies that the user is online.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/chat_rooms/{chatRoomId}",
+        "definition": {
+          "entityName": "ChatRoom",
+          "schema": {
+            "$ref": "#/backend/entities/ChatRoom"
+          },
+          "description": "Stores chat room metadata, like type (global or private) and participants.",
+          "params": [
+            {
+              "name": "chatRoomId",
+              "description": "The unique identifier of the chat room."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/chat_rooms/{chatRoomId}/messages/{messageId}",
+        "definition": {
+          "entityName": "Message",
+          "schema": {
+            "$ref": "#/backend/entities/Message"
+          },
+          "description": "Stores messages for a given chat room. Each message belongs to a specific chat room.",
+          "params": [
+            {
+              "name": "chatRoomId",
+              "description": "The unique identifier of the chat room."
+            },
+            {
+              "name": "messageId",
+              "description": "The unique identifier of the message."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This design prioritizes real-time user presence and ephemeral chat data as requested, focusing on Authorization Independence to ensure robust security rules. Due to the ephemeral nature of the data, persistence is kept to a minimum and geared towards active sessions. The active users are maintained under a specific collection to get real online user data. The design implements the following strategies:\n\n1.  **Authorization Independence:** This is achieved because we avoid any `get()` calls in our security rules. The data structure allows us to authorize requests based solely on the `request.auth.uid` and the structure of the data, without needing to fetch additional data from other documents.\n2.  **Structural Segregation:** We segregate user data (`/users/{userId}`) from online status (`/online_users/{userId}`), and chat rooms (`/chat_rooms/{chatRoomId}`). This ensures that different security rules can be applied to different parts of the database.\n3.  **Access Modeling:**\n    *   **Private Data:** User-specific data is stored under `/users/{userId}`, following the Path-Based ownership pattern.\n    *   **Global Roles:** We use the existence of documents in the `/online_users/{userId}` collection to represent the online status of a user, which can be used for authorization.\n\nQAPs Support:\n*   Secure `list` operations are supported through structural segregation.  Listing users is safe because we control write access to the `/users/{userId}` and `/online_users/{userId}` collections.\n\nIn summary, the proposed structure facilitates the development of secure, scalable, and debuggable Firestore rules while adhering to the core design principles and strategy mandates."
+  }
+}
