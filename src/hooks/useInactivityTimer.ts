@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 
-const INACTIVITY_TIMEOUT = 3 * 60 * 1000; // 3 minutes
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 export function useInactivityTimer(onInactive: () => void) {
   const timeoutId = useRef<NodeJS.Timeout | null>(null);
