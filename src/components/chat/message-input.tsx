@@ -58,26 +58,58 @@ export function MessageInput() {
   };
 
   return (
-    <div className="border-t bg-muted/30 p-4">
-      <form onSubmit={handleSubmit} className="flex items-center gap-2">
-        <Textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Type your message..."
-          className="min-h-0 max-h-24 flex-1 resize-none bg-background"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSubmit(e);
-            }
-          }}
-          disabled={!user || !firestore}
-        />
-        <Button type="submit" size="icon" disabled={!text.trim() || !user || !firestore}>
-          <Send className="h-4 w-4" />
-          <span className="sr-only">Send</span>
+    <div className="border-t border-pink-200/50 dark:border-pink-800/30 bg-gradient-to-r from-pink-50/50 to-purple-50/50 dark:from-pink-950/30 dark:to-purple-950/30 backdrop-blur-sm p-3 md:p-6">
+      <form onSubmit={handleSubmit} className="flex items-end gap-2 md:gap-4">
+        <div className="flex-1 relative">
+          <Textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Type your message... ✨"
+            className="min-h-0 max-h-32 resize-none bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-2 border-pink-200 dark:border-pink-800 focus:border-pink-400 dark:focus:border-pink-600 rounded-xl md:rounded-2xl px-3 md:px-4 py-2 md:py-3 pr-10 md:pr-12 text-sm transition-all duration-300 focus:shadow-lg focus:shadow-pink-500/25 placeholder:text-gray-400"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
+            disabled={!user || !firestore}
+          />
+          
+          {/* Character indicator */}
+          <div className="absolute bottom-1 md:bottom-2 right-2 md:right-3 text-xs text-gray-400">
+            {text.length > 0 && (
+              <span className={text.length > 500 ? "text-red-500" : "text-gray-400"}>
+                {text.length}/500
+              </span>
+            )}
+          </div>
+        </div>
+        
+        <Button 
+          type="submit" 
+          size="lg"
+          disabled={!text.trim() || !user || !firestore || text.length > 500}
+          className="h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 border-0 shadow-xl shadow-pink-500/50 hover:shadow-pink-500/70 transition-all duration-300 transform hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
+        >
+          {text.trim() ? (
+            <div className="flex items-center">
+              <Send className="h-4 w-4 md:h-5 md:w-5" />
+            </div>
+          ) : (
+            <span className="text-base md:text-lg">💬</span>
+          )}
+          <span className="sr-only">Send message</span>
         </Button>
       </form>
+      
+      {/* Typing indicator area */}
+      <div className="mt-2 md:mt-3 text-center">
+        <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1">
+          <span className="text-sm md:text-lg">💡</span>
+          <span className="hidden sm:inline">Press Enter to send, Shift+Enter for new line</span>
+          <span className="sm:hidden">Enter to send</span>
+        </p>
+      </div>
     </div>
   );
 }

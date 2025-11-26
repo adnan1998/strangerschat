@@ -104,9 +104,16 @@ export function MessageArea() {
 
 
   return (
-    <ScrollArea className="flex-1" ref={scrollAreaRef}>
-      <div className="p-4 space-y-4">
-        {isLoading && <div className="text-center text-muted-foreground">Loading messages...</div>}
+    <ScrollArea className="flex-1 bg-gradient-to-b from-white/40 to-pink-50/20 dark:from-gray-900/40 dark:to-pink-950/20" ref={scrollAreaRef}>
+      <div className="p-6 space-y-4">
+        {isLoading && (
+          <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+            <div className="flex items-center justify-center gap-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-500"></div>
+              <span>Loading messages...</span>
+            </div>
+          </div>
+        )}
         <AnimatePresence>
             {messages && messages.map((msg, index) => (
               <motion.div
@@ -116,11 +123,12 @@ export function MessageArea() {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.8, y: -50 }}
                 transition={{
-                  opacity: { duration: 0.2 },
+                  opacity: { duration: 0.3 },
+                  scale: { duration: 0.3 },
                   layout: {
                     type: "spring",
-                    bounce: 0.4,
-                    duration: index * 0.05 + 0.4,
+                    bounce: 0.3,
+                    duration: index * 0.05 + 0.5,
                   },
                 }}
               >
@@ -128,7 +136,13 @@ export function MessageArea() {
               </motion.div>
             ))}
         </AnimatePresence>
-        {!isLoading && (!messages || messages.length === 0) && <div className="text-center text-muted-foreground">No messages yet. Say hi!</div>}
+        {!isLoading && (!messages || messages.length === 0) && (
+          <div className="text-center text-gray-500 dark:text-gray-400 py-16">
+            <div className="text-6xl mb-4">💬</div>
+            <p className="text-lg font-semibold mb-2">No messages yet!</p>
+            <p className="text-sm opacity-75">Start the conversation with a friendly hello! 👋</p>
+          </div>
+        )}
       </div>
     </ScrollArea>
   );

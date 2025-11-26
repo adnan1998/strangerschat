@@ -79,30 +79,47 @@ export function AppShell() {
         // This is a returning user (already logged into Firebase, but redux state is empty)
         const fetchUser = async () => {
           setIsUserDataLoading(true);
-          const userDocRef = doc(firestore, 'users', firebaseUser.uid);
           
           try {
+            // Try to get user data from the main users collection first
+            const userDocRef = doc(firestore, 'users', firebaseUser.uid);
             const docSnap = await getDoc(userDocRef);
+            
             if (docSnap.exists()) {
               const userData = docSnap.data() as User;
               const onlineUserDocRef = doc(firestore, 'online_users', firebaseUser.uid);
-              // Mark as online when they return
-              setDocumentNonBlocking(onlineUserDocRef, { ...userData, isOnline: true }, { merge: true });
-              dispatch(login(userData));
+              
+              // Mark as online when they return and restore session
+              const updatedUserData = { ...userData, isOnline: true };
+              setDocumentNonBlocking(onlineUserDocRef, updatedUserData, { merge: true });
+              dispatch(login(updatedUserData));
             } else {
-              // Data is missing, maybe an error during sign-up. Force logout to restart.
-              await auth.signOut();
-              dispatch(logout());
+              // Try to get from online_users as fallback (in case main doc was deleted but online_users exists)
+              const onlineUserDocRef = doc(firestore, 'online_users', firebaseUser.uid);
+              const onlineDocSnap = await getDoc(onlineUserDocRef);
+              
+              if (onlineDocSnap.exists()) {
+                const userData = onlineDocSnap.data() as User;
+                const updatedUserData = { ...userData, isOnline: true };
+                
+                // Restore to main collection and mark as online
+                setDocumentNonBlocking(userDocRef, updatedUserData, {});
+                setDocumentNonBlocking(onlineUserDocRef, updatedUserData, { merge: true });
+                dispatch(login(updatedUserData));
+              } else {
+                // No user data found anywhere, force logout to restart registration
+                await auth.signOut();
+                dispatch(logout());
+              }
             }
           } catch (error) {
             const contextualError = new FirestorePermissionError({
               operation: 'get',
-              path: userDocRef.path,
+              path: `users/${firebaseUser.uid}`,
             });
             errorEmitter.emit('permission-error', contextualError);
-            // Also log out the user as we can't fetch their data
-            await auth.signOut();
-            dispatch(logout());
+            console.warn('Failed to restore user session, will need to re-register:', error);
+            // Don't force logout immediately, let user try to re-register
           } finally {
             setIsUserDataLoading(false);
           }
@@ -119,18 +136,34 @@ export function AppShell() {
   }, [firebaseUser, isUserLoading, firestore, dispatch, isLoggedIn, sessionUser]);
 
   useEffect(() => {
-    const handleBeforeUnload = () => {
-        if (isLoggedIn) {
-            dispatch(logoutAndLeave());
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+        if (isLoggedIn && sessionUser) {
+            // Only update online status to false, don't delete the user completely
+            const onlineUserDocRef = doc(firestore, 'online_users', sessionUser.id);
+            setDocumentNonBlocking(onlineUserDocRef, { ...sessionUser, isOnline: false }, { merge: true });
+        }
+    };
+
+    const handleVisibilityChange = () => {
+        if (document.visibilityState === 'hidden' && isLoggedIn && sessionUser) {
+            // User switched tabs or minimized - mark as offline but keep session
+            const onlineUserDocRef = doc(firestore, 'online_users', sessionUser.id);
+            setDocumentNonBlocking(onlineUserDocRef, { ...sessionUser, isOnline: false }, { merge: true });
+        } else if (document.visibilityState === 'visible' && isLoggedIn && sessionUser) {
+            // User came back - mark as online
+            const onlineUserDocRef = doc(firestore, 'online_users', sessionUser.id);
+            setDocumentNonBlocking(onlineUserDocRef, { ...sessionUser, isOnline: true }, { merge: true });
         }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
         window.removeEventListener('beforeunload', handleBeforeUnload);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isLoggedIn, dispatch]);
+  }, [isLoggedIn, dispatch, sessionUser, firestore]);
 
 
   if (isUserLoading || isUserDataLoading) {

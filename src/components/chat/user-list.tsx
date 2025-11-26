@@ -79,42 +79,118 @@ export function UserList() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="p-2 border-b">
-        <p className="p-2 text-sm font-semibold">Filter by Gender</p>
-        <div className="grid grid-cols-3 gap-1">
-          <Button variant={filter === 'All' ? 'default' : 'ghost'} size="sm" onClick={() => handleFilterChange('All')}>All</Button>
-          <Button variant={filter === 'Male' ? 'default' : 'ghost'} size="sm" onClick={() => handleFilterChange('Male')}>Male</Button>
-          <Button variant={filter === 'Female' ? 'default' : 'ghost'} size="sm" onClick={() => handleFilterChange('Female')}>Female</Button>
+      <div className="p-3 border-b border-pink-200/50 dark:border-pink-800/30 bg-gradient-to-r from-pink-50/30 to-purple-50/30 dark:from-pink-950/20 dark:to-purple-950/20">
+        <p className="px-2 py-1 text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+          <span className="text-lg">🎭</span>
+          Filter by Gender
+        </p>
+        <div className="grid grid-cols-3 gap-2 mt-2">
+          <Button 
+            variant={filter === 'All' ? 'default' : 'ghost'} 
+            size="sm" 
+            onClick={() => handleFilterChange('All')}
+            className={cn(
+              "rounded-xl transition-all duration-300 h-auto py-2 px-2 flex items-center justify-center gap-1 text-xs font-medium",
+              filter === 'All' 
+                ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg hover:shadow-xl" 
+                : "hover:bg-pink-100 dark:hover:bg-pink-950/30"
+            )}
+          >
+            <span>👥</span>
+            <span>All</span>
+          </Button>
+          <Button 
+            variant={filter === 'Male' ? 'default' : 'ghost'} 
+            size="sm" 
+            onClick={() => handleFilterChange('Male')}
+            className={cn(
+              "rounded-xl transition-all duration-300 h-auto py-2 px-2 flex items-center justify-center gap-1 text-xs font-medium",
+              filter === 'Male' 
+                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg hover:shadow-xl" 
+                : "hover:bg-blue-100 dark:hover:bg-blue-950/30"
+            )}
+          >
+            <span>👨</span>
+            <span>Male</span>
+          </Button>
+          <Button 
+            variant={filter === 'Female' ? 'default' : 'ghost'} 
+            size="sm" 
+            onClick={() => handleFilterChange('Female')}
+            className={cn(
+              "rounded-xl transition-all duration-300 h-auto py-2 px-2 flex items-center justify-center gap-1 text-xs font-medium",
+              filter === 'Female' 
+                ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg hover:shadow-xl" 
+                : "hover:bg-pink-100 dark:hover:bg-pink-950/30"
+            )}
+          >
+            <span>👩</span>
+            <span>Female</span>
+          </Button>
         </div>
       </div>
+      
       <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
-          {isLoading && <div className="p-4 text-center text-sm text-muted-foreground">Loading users...</div>}
+        <div className="p-3 space-y-2">
+          {isLoading && (
+            <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-pink-500"></div>
+                <span>Loading users...</span>
+              </div>
+            </div>
+          )}
           {!isLoading && filteredUsers.length > 0 ? filteredUsers.map((user) => (
             <button
               key={user.id}
               onClick={() => handleUserClick(user)}
-              className="w-full text-left p-2 rounded-md hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full text-left p-2.5 rounded-xl hover:bg-gradient-to-r hover:from-pink-100/50 hover:to-purple-100/50 dark:hover:from-pink-950/30 dark:hover:to-purple-950/30 focus:outline-none focus:ring-2 focus:ring-pink-400 dark:focus:ring-pink-600 transition-all duration-300 border border-transparent hover:border-pink-200/50 dark:hover:border-pink-800/30 hover:shadow-md group"
             >
               <div className="flex items-center gap-3">
-                <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-muted-foreground/20 text-xs">
-                        {user.username.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="font-semibold">{user.username}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {user.age} / {user.gender === 'Male' ? 'M' : 'F'}
+                <div className="relative">
+                  <Avatar className="h-9 w-9 border-2 border-pink-200 dark:border-pink-800 group-hover:border-pink-400 dark:group-hover:border-pink-600 transition-colors shadow-sm">
+                      <AvatarFallback className={cn(
+                        "text-xs font-bold transition-colors",
+                        user.gender === 'Male' 
+                          ? "bg-gradient-to-br from-blue-400 to-blue-600 text-white" 
+                          : "bg-gradient-to-br from-pink-400 to-pink-600 text-white"
+                      )}>
+                          {user.username.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                  </Avatar>
+                  
+                  {/* Online indicator */}
+                  <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-white dark:border-gray-900 animate-pulse"></div>
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm text-gray-800 dark:text-gray-200 group-hover:text-pink-700 dark:group-hover:text-pink-300 transition-colors truncate">
+                    {user.username}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                    <span className="text-xs">{user.gender === 'Male' ? '👨' : '👩'}</span>
+                    <span>{user.age}</span>
+                    <span>/</span>
+                    <span>{user.gender}</span>
                   </div>
                 </div>
-                <span className={cn("text-xl", user.gender === "Male" ? "text-blue-500" : "text-pink-500")}>
-                  {user.gender === "Male" ? "♂" : "♀"}
-                </span>
+                
+                <div className="flex items-center gap-1">
+                  <span className={cn(
+                    "text-lg transition-transform group-hover:scale-105",
+                    user.gender === "Male" ? "text-blue-500" : "text-pink-500"
+                  )}>
+                    {user.gender === "Male" ? "♂" : "♀"}
+                  </span>
+                </div>
               </div>
             </button>
           )) : !isLoading && (
-            <div className="p-4 text-center text-sm text-muted-foreground">No other users online.</div>
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+              <div className="text-4xl mb-3">🤷‍♂️</div>
+              <p className="font-semibold mb-1">No other users online</p>
+              <p className="text-xs opacity-75">Check back later for new connections!</p>
+            </div>
           )}
         </div>
       </ScrollArea>
