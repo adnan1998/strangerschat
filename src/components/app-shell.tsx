@@ -15,6 +15,7 @@ import { getAuth } from 'firebase/auth';
 import { type AppDispatch } from '@/lib/redux/store';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { ChatSkeletonLoader } from './chat/chat-skeleton-loader';
 
 export function AppShell() {
   const dispatch: AppDispatch = useDispatch();
@@ -118,27 +119,22 @@ export function AppShell() {
   }, [firebaseUser, isUserLoading, firestore, dispatch, isLoggedIn, sessionUser]);
 
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // This is not guaranteed to run, but it's our best effort.
-      if (isLoggedIn) {
-        dispatch(logoutAndLeave());
-      }
+    const handleBeforeUnload = () => {
+        if (isLoggedIn) {
+            dispatch(logoutAndLeave());
+        }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [isLoggedIn, dispatch]);
 
 
   if (isUserLoading || isUserDataLoading) {
-      return (
-          <div className="flex h-screen w-screen items-center justify-center bg-background">
-              <p>Loading...</p>
-          </div>
-      )
+      return <ChatSkeletonLoader />;
   }
 
   return (

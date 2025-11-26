@@ -50,7 +50,7 @@ export default function Login() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      username: "",
+      username: typeof window !== 'undefined' ? localStorage.getItem('last-username') || '' : '',
       age: 18,
     },
   });
@@ -58,7 +58,6 @@ export default function Login() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!auth || !firestore) return;
 
-    // A user is only considered "taken" if they are in the list AND their isOnline flag is true.
     const isTaken = onlineUsers?.some(
       (user) => user.username.toLowerCase() === values.username.toLowerCase() && user.isOnline
     );
@@ -71,10 +70,8 @@ export default function Login() {
       return;
     }
 
+    localStorage.setItem('last-username', values.username);
     initiateAnonymousSignIn(auth);
-    
-    // We can't get the user immediately after anonymous sign in, so we wait for onAuthStateChanged
-    // in AppShell to handle user document creation.
     
     localStorage.setItem('pending-user-details', JSON.stringify(values));
 
