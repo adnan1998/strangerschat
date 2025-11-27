@@ -268,10 +268,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useAuth } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
-import { collection } from "firebase/firestore";
-import { type User } from "@/types";
 import { motion } from 'framer-motion';
 import { MessageCircle, Sparkles, User as UserIcon, Users, Cake, Shield, Heart, Rocket } from "lucide-react";
 
@@ -299,10 +297,6 @@ export default function Login() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!auth) return;
-
-    // The check for username uniqueness is removed here to prevent
-    // an unauthenticated query to Firestore, which was causing permission errors.
-    // In a production app, this check should be handled by a secure backend function (e.g., a Cloud Function).
 
     localStorage.setItem('last-username', values.username);
     initiateAnonymousSignIn(auth);
