@@ -287,14 +287,7 @@ const formSchema = z.object({
 export default function Login() {
   const { toast } = useToast();
   const auth = useAuth();
-  const firestore = useFirestore();
-
-  const onlineUsersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'online_users');
-  }, [firestore]);
-  const { data: onlineUsers, isLoading } = useCollection<User>(onlineUsersQuery);
-
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -305,19 +298,11 @@ export default function Login() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!auth || !firestore) return;
+    if (!auth) return;
 
-    const isTaken = onlineUsers?.some(
-      (user) => user.username.toLowerCase() === values.username.toLowerCase() && user.isOnline
-    );
-
-    if (isTaken) {
-      form.setError("username", {
-        type: "manual",
-        message: "This username is currently in use.",
-      });
-      return;
-    }
+    // The check for username uniqueness is removed here to prevent
+    // an unauthenticated query to Firestore, which was causing permission errors.
+    // In a production app, this check should be handled by a secure backend function (e.g., a Cloud Function).
 
     localStorage.setItem('last-username', values.username);
     initiateAnonymousSignIn(auth);
@@ -373,7 +358,7 @@ export default function Login() {
                         <FormLabel className="flex items-center gap-2 font-semibold text-muted-foreground"><UserIcon className="h-4 w-4 text-primary"/>Choose Your Username</FormLabel>
                         <FormControl>
                             <div className="relative">
-                                <Input placeholder="Enter a cool username" {...field} disabled={isLoading} className="pr-8 bg-white/50 focus:bg-white"/>
+                                <Input placeholder="Enter a cool username" {...field} className="pr-8 bg-white/50 focus:bg-white"/>
                                 <Sparkles className="absolute top-1/2 right-3 -translate-y-1/2 h-4 w-4 text-yellow-400"/>
                             </div>
                         </FormControl>
@@ -388,7 +373,7 @@ export default function Login() {
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel className="flex items-center gap-2 font-semibold text-muted-foreground"><Users className="h-4 w-4 text-primary"/>Gender</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                             <SelectTrigger className="bg-white/50 focus:bg-white">
                                 <SelectValue placeholder="Select..." />
@@ -410,21 +395,17 @@ export default function Login() {
                         <FormItem>
                         <FormLabel className="flex items-center gap-2 font-semibold text-muted-foreground"><Cake className="h-4 w-4 text-primary"/>Age</FormLabel>
                         <FormControl>
-                            <Input type="number" {...field} disabled={isLoading} className="bg-white/50 focus:bg-white"/>
+                            <Input type="number" {...field} className="bg-white/50 focus:bg-white"/>
                         </FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
                     />
                 </div>
-                <Button type="submit" className="w-full text-lg font-semibold bg-gradient-to-r from-pink-500 to-purple-600 hover:shadow-lg hover:shadow-purple-500/30 transition-shadow duration-300" size="lg" disabled={isLoading}>
-                    {isLoading ? 'Checking...' : 
-                    <>
-                        <MessageCircle className="mr-2 h-5 w-5"/>
-                        Enter the Chat
-                        <Rocket className="ml-2 h-5 w-5"/>
-                    </>
-                    }
+                <Button type="submit" className="w-full text-lg font-semibold bg-gradient-to-r from-pink-500 to-purple-600 hover:shadow-lg hover:shadow-purple-500/30 transition-shadow duration-300" size="lg">
+                    <MessageCircle className="mr-2 h-5 w-5"/>
+                    Enter the Chat
+                    <Rocket className="ml-2 h-5 w-5"/>
                 </Button>
                 </form>
             </Form>
@@ -446,7 +427,3 @@ export default function Login() {
     </div>
   );
 }
-
-    
-
-    
