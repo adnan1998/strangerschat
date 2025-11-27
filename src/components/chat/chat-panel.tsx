@@ -107,13 +107,11 @@ import { type RootState } from "@/lib/redux/store";
 import { MessageArea } from "./message-area";
 import { MessageInput } from "./message-input";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
-import { Users, Globe, Sparkles } from "lucide-react";
+import { Users, Globe } from "lucide-react";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { type ChatRoom, type User } from "@/types";
 import { useMemo, useEffect } from "react";
-import { Button } from "../ui/button";
-import { cn } from "@/lib/utils";
 
 export function ChatPanel() {
   const firestore = useFirestore();
@@ -152,49 +150,52 @@ export function ChatPanel() {
   
   const isGlobal = activeChatRoomId === 'global';
   const chatName = isGlobal ? "Global Lobby" : privateChatUser?.username || "Chat";
-  const chatIcon = isGlobal ? (
-    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white">
-        <Globe className="h-6 w-6" />
-    </div>
-  ) : (
-    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white">
-        <Users className="h-6 w-6" />
-    </div>
-  );
 
   return (
     <div className="flex h-screen flex-col bg-background">
-      <header className="flex items-center justify-between gap-3 border-b bg-card px-4 py-3">
-        <div className="flex items-center gap-3">
-            <SidebarTrigger className="md:hidden"/>
-            {chatIcon}
-            <div className="flex flex-col">
-                <h2 className={cn(
-                    "text-xl font-bold tracking-tight",
-                    !isGlobal && privateChatUser?.gender === 'Male' && 'text-blue-500',
-                    !isGlobal && privateChatUser?.gender === 'Female' && 'text-pink-500',
-                )}>{chatName}</h2>
-                <div className="text-sm text-muted-foreground flex items-center gap-1">
+      <header className="flex items-center justify-between gap-3 border-b border-pink-200/50 dark:border-pink-800/30 bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-950/20 dark:to-purple-950/20 px-4 sm:px-6 py-3 sm:py-4 shadow-lg">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+            <SidebarTrigger className="md:hidden p-2 hover:bg-pink-200/50 dark:hover:bg-pink-800/30 rounded-xl transition-colors"/>
+            
+            {/* Enhanced chat icon */}
+            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center shadow-lg shrink-0">
+              {isGlobal ? (
+                <span className="text-lg sm:text-xl">🌍</span>
+              ) : (
+                <span className="text-lg sm:text-xl">💬</span>
+              )}
+            </div>
+            
+            <div className="flex flex-col min-w-0 flex-1">
+                <h2 className="text-lg sm:text-xl font-bold tracking-tight bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent truncate">
+                    {chatName}
+                </h2>
+                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 flex items-center gap-1 sm:gap-2">
                     {isGlobal ? (
                         <>
-                            <Sparkles className="h-4 w-4 text-yellow-500" />
-                            <span>Anonymous conversations await</span>
+                            <span className="text-sm sm:text-base">✨</span>
+                            <span className="hidden sm:inline">Anonymous conversations await</span>
+                            <span className="sm:hidden">Global chat</span>
                         </>
                     ) : privateChatUser ? (
-                        <span>{privateChatUser.age} / {privateChatUser.gender}</span>
+                        <>
+                            <span className="text-sm sm:text-base">{privateChatUser.gender === 'Male' ? '👨' : '👩'}</span>
+                            <span>{privateChatUser.age} / {privateChatUser.gender}</span>
+                            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                            <span className="text-xs text-green-600 dark:text-green-400 hidden sm:inline">Online</span>
+                        </>
                     ) : (
                         <span>Loading...</span>
                     )}
                 </div>
             </div>
         </div>
-        <Button variant="outline" size="sm" className="rounded-full">
-            <span className="relative flex h-2 w-2 mr-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
-            </span>
-            Live Chat
-        </Button>
+        
+        {/* Status badge */}
+        <div className="hidden sm:flex items-center gap-1 px-3 py-1 bg-pink-200/50 dark:bg-pink-800/30 rounded-full text-xs font-semibold text-pink-700 dark:text-pink-300 shrink-0">
+            <span className="h-2 w-2 rounded-full bg-pink-500 animate-pulse"></span>
+            <span>{isGlobal ? 'Live Chat' : 'Private'}</span>
+        </div>
       </header>
       <MessageArea />
       <MessageInput />
