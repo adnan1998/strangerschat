@@ -10,6 +10,7 @@ import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, Timestamp, where, onSnapshot, limit }from "firebase/firestore";
 import { type Message as MessageType } from "@/types";
 import { incrementUnread, clearUnread } from "@/lib/redux/slices/chatSlice";
+import { useAudioFeedback } from "@/hooks/useAudioFeedback";
 
 export function MessageArea() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -18,6 +19,7 @@ export function MessageArea() {
   const firestore = useFirestore();
   const { activeChatRoomId } = useSelector((state: RootState) => state.chat);
   const { user: currentUser } = useSelector((state: RootState) => state.session);
+  const { playNotification } = useAudioFeedback();
 
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !activeChatRoomId) return null;
@@ -70,6 +72,8 @@ export function MessageArea() {
                     // Check if message is new and not from current user, and chat is not active
                     if (message.senderId !== currentUser.id && chatRoomId !== activeChatRoomId) {
                        dispatch(incrementUnread(chatRoomId));
+                       // Play notification sound for messages in inactive chats
+                       playNotification().catch(console.warn);
                     }
                 }
              })
@@ -92,6 +96,27 @@ export function MessageArea() {
   
   }, [firestore, currentUser, activeChatRoomId, dispatch]);
 
+  // Listen for new messages in the ACTIVE chat and play notification sound
+  useEffect(() => {
+    if (!firestore || !activeChatRoomId || !currentUser || isInitialLoad.current) return;
+
+    const messagesRef = collection(firestore, `chat_rooms/${activeChatRoomId}/messages`);
+    const messagesQuery = query(messagesRef, orderBy('timestamp', 'desc'), limit(1));
+
+    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const message = change.doc.data() as MessageType;
+          // Play notification sound for new messages from other users
+          if (message.senderId !== currentUser.id) {
+            playNotification().catch(console.warn);
+          }
+        }
+      });
+    });
+
+    return unsubscribe;
+  }, [firestore, activeChatRoomId, currentUser, playNotification]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {

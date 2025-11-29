@@ -92,6 +92,7 @@ import { cn } from "@/lib/utils";
 import { type RootState } from "@/lib/redux/store";
 import { type Message as MessageType } from "@/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ReportButton } from "./report-button";
 
 interface MessageProps {
   message: MessageType;
@@ -116,7 +117,7 @@ export function Message({ message }: MessageProps) {
   return (
     <div
       className={cn(
-        "flex items-start gap-3",
+        "flex items-start gap-3 group",
         isSelf ? "justify-end" : "justify-start"
       )}
     >
@@ -127,28 +128,41 @@ export function Message({ message }: MessageProps) {
             </AvatarFallback>
         </Avatar>
       )}
-      <div
-        className={cn(
-          "max-w-[70%] rounded-2xl p-3 px-4 shadow-sm",
-          isSelf
-            ? "rounded-br-lg bg-gradient-to-r from-pink-500 to-purple-600 text-primary-foreground"
-            : "rounded-bl-lg bg-card border"
-        )}
-      >
-        {!isSelf && (
-          <p className="mb-1 text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-600">{message.sender}</p>
-        )}
-        <p className="text-sm" style={{ overflowWrap: 'break-word', wordWrap: 'break-word', hyphens: 'auto' }}>
-            {message.content}
-        </p>
-        <p
+      <div className="flex items-start gap-2 max-w-[70%]">
+        <div
           className={cn(
-            "mt-1 text-right text-[10px]",
-            isSelf ? "text-primary-foreground/70" : "text-muted-foreground"
+            "rounded-2xl p-3 px-4 shadow-sm relative",
+            isSelf
+              ? "rounded-br-lg bg-gradient-to-r from-pink-500 to-purple-600 text-primary-foreground"
+              : "rounded-bl-lg bg-card border"
           )}
         >
-          {formattedTimestamp}
-        </p>
+          {!isSelf && (
+            <p className="mb-1 text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-600">{message.sender}</p>
+          )}
+          <p className="text-sm" style={{ overflowWrap: 'break-word', wordWrap: 'break-word', hyphens: 'auto' }}>
+              {message.content}
+          </p>
+          <p
+            className={cn(
+              "mt-1 text-right text-[10px]",
+              isSelf ? "text-primary-foreground/70" : "text-muted-foreground"
+            )}
+          >
+            {formattedTimestamp}
+          </p>
+        </div>
+        
+        {/* Report button - only show for other users' messages */}
+        {!isSelf && (
+          <div className="pt-2">
+            <ReportButton 
+              messageId={message.id} 
+              senderId={message.senderId} 
+              content={message.content} 
+            />
+          </div>
+        )}
       </div>
     </div>
   );

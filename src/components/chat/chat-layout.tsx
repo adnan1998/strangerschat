@@ -13,6 +13,7 @@ import { logoutAndLeave } from "@/lib/redux/slices/sessionSlice";
 import { useToast } from "@/hooks/use-toast";
 import { AppSidebar } from "./sidebar";
 import { ChatPanel } from "./chat-panel";
+import { SafetyNotice } from "@/components/safety-notice";
 import { type AppDispatch } from "@/lib/redux/store";
 
 
@@ -44,8 +45,14 @@ export function ChatLayout() {
         >
           <AppSidebar />
         </Sidebar>
-        <SidebarInset className="bg-transparent flex-1">
-          <ChatPanel />
+        <SidebarInset className="bg-transparent flex-1 flex flex-col">
+          <div className="flex-1">
+            <ChatPanel />
+          </div>
+          {/* Safety notice at bottom */}
+          <div className="p-4 border-t border-pink-200/50 dark:border-pink-800/30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
+            <SafetyNotice variant="compact" />
+          </div>
         </SidebarInset>
       </SidebarProvider>
     </div>

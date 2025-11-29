@@ -27,22 +27,30 @@ export const logoutAndLeave = createAsyncThunk<void, void, { state: RootState }>
         const auth = getAuth();
         const userId = session.user?.id; // Capture the user ID before any state changes
 
+        console.log('🚀 logoutAndLeave triggered for user:', userId);
+
         // Perform cleanup first
         if (userId) {
             const { firestore } = getSdks(auth.app);
             const onlineUserDocRef = doc(firestore, 'online_users', userId);
             
+            console.log('🗑️ Attempting to delete user from online_users collection:', onlineUserDocRef.path);
+            
             // Use a direct, awaited delete with proper error handling
             try {
                 await deleteDoc(onlineUserDocRef);
+                console.log('✅ Successfully deleted user from online_users collection');
             } catch (error) {
                 const permissionError = new FirestorePermissionError({
                     path: onlineUserDocRef.path,
                     operation: 'delete',
                 });
                 errorEmitter.emit('permission-error', permissionError);
-                console.error("Failed to delete online user presence:", permissionError);
+                console.error("❌ Failed to delete online user presence:", permissionError);
+                console.error("❌ Original error:", error);
             }
+        } else {
+            console.warn('⚠️ No userId found, cannot delete from online_users collection');
         }
 
         // Sign out from Firebase

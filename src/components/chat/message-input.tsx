@@ -128,16 +128,40 @@ import { useFirestore } from "@/firebase";
 import { collection, doc, serverTimestamp, query, orderBy, limit, getDocs, writeBatch } from "firebase/firestore";
 import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { v4 as uuidv4 } from 'uuid';
+import { filterMessage } from "@/lib/content-filter";
+import { useToast } from "@/hooks/use-toast";
 
 export function MessageInput() {
   const [text, setText] = useState("");
   const firestore = useFirestore();
   const { activeChatRoomId } = useSelector((state: RootState) => state.chat);
   const { user } = useSelector((state: RootState) => state.session);
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim() === "" || !user || !firestore || !activeChatRoomId) return;
+
+    // Filter message content with smart censoring
+    const messageResult = filterMessage(text.trim());
+    
+    if (!messageResult.allowed) {
+      toast({
+        title: "Message blocked",
+        description: messageResult.reason,
+        variant: "destructive",
+      });
+      return; // Don't send the message
+    }
+
+    // Show friendly notification if words were censored
+    if (messageResult.wasFiltered) {
+      toast({
+        title: "💫 Message filtered",
+        description: "Some words were automatically filtered for everyone's comfort.",
+        variant: "default",
+      });
+    }
 
     const messageId = uuidv4();
     const messagesColRef = collection(firestore, 'chat_rooms', activeChatRoomId, 'messages');
@@ -149,7 +173,7 @@ export function MessageInput() {
       chatRoomId: activeChatRoomId,
       senderId: user.id,
       sender: user.username, // Denormalized for display
-      content: text.trim(),
+      content: messageResult.filteredMessage, // Use the filtered message
       timestamp: serverTimestamp(),
     };
     

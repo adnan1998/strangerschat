@@ -270,6 +270,9 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
+import { useAudioFeedback } from "@/hooks/useAudioFeedback";
+import { isUsernameAllowed } from "@/lib/content-filter";
+import { SafetyNotice, AgeVerificationNotice, SafetyFooter } from "@/components/safety-notice";
 import { motion } from 'framer-motion';
 import { MessageCircle, Sparkles, User as UserIcon, Users, Cake, Shield, Heart, Rocket } from "lucide-react";
 
@@ -285,6 +288,7 @@ const formSchema = z.object({
 export default function Login() {
   const { toast } = useToast();
   const auth = useAuth();
+  const { playSuccess } = useAudioFeedback();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -298,19 +302,38 @@ export default function Login() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!auth) return;
 
+    // Validate username against content filter
+    const usernameValidation = isUsernameAllowed(values.username);
+    if (!usernameValidation.allowed) {
+      toast({
+        title: "Username not allowed",
+        description: usernameValidation.reason,
+        variant: "destructive",
+      });
+      return;
+    }
+
     localStorage.setItem('last-username', values.username);
+    
+    // Play success sound when login is initiated
+    try {
+      await playSuccess();
+    } catch (error) {
+      console.log('Audio feedback not available:', error);
+    }
+    
     initiateAnonymousSignIn(auth);
     
     localStorage.setItem('pending-user-details', JSON.stringify(values));
 
     toast({
-      title: "Joining the conversation...",
-      description: `You are about to start chatting as ${values.username}.`,
+      title: "Welcome to safe chatting!",
+      description: `You are joining as ${values.username}. Remember to keep conversations friendly! 🎉`,
     });
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center p-4 bg-gradient-to-br from-pink-50 via-purple-50 to-white overflow-hidden">
+    <div className="flex min-h-screen w-full flex-col items-center justify-center p-4 bg-gradient-to-br from-pink-50 via-purple-50 to-white py-8">
         <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -327,23 +350,34 @@ export default function Login() {
             transition={{ duration: 0.6, type: 'spring', stiffness: 100, delay: 0.4 }}
             className="w-full max-w-md rounded-3xl bg-white shadow-2xl shadow-purple-200/50 overflow-hidden"
         >
-            <div className="relative text-center bg-white/80 backdrop-blur-sm rounded-t-2xl px-6 py-10">
+            <div className="relative text-center bg-white/80 backdrop-blur-sm rounded-t-2xl px-6 py-6">
                 <motion.div 
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ duration: 0.5, delay: 0.8, type: 'spring' }}
-                    className="mx-auto h-16 w-16 mb-4 rounded-full flex items-center justify-center bg-gradient-to-br from-pink-500 to-purple-600 shadow-lg shadow-purple-500/20"
+                    className="mx-auto h-12 w-12 mb-3 rounded-full flex items-center justify-center bg-gradient-to-br from-pink-500 to-purple-600 shadow-lg shadow-purple-500/20"
                 >
-                    <MessageCircle className="h-8 w-8 text-white"/>
+                    <MessageCircle className="h-6 w-6 text-white"/>
                 </motion.div>
-                <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-700">Join the Conversation</h1>
-                <p className="text-muted-foreground mt-2">Create your anonymous identity and dive in</p>
+                <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-700">Join the Chat</h1>
+                <p className="text-sm text-muted-foreground mt-1">Quick & anonymous</p>
                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-purple-200 to-transparent"></div>
             </div>
             
-            <div className="p-6 md:p-8 bg-gradient-to-t from-purple-50/70 to-white">
+            <div className="p-5 bg-gradient-to-t from-purple-50/70 to-white">
+            
+            {/* Compact welcome message */}
+            <div className="text-center mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
+                Welcome to anonymous conversations! 🌟
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                18+ • Keep it friendly • Have fun!
+              </p>
+            </div>
+
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                     control={form.control}
                     name="username"
@@ -403,21 +437,30 @@ export default function Login() {
                 </Button>
                 </form>
             </Form>
-            <div className="text-center text-xs text-muted-foreground mt-6 flex items-center justify-center gap-2">
+            {/* Compact footer */}
+            <div className="text-center text-xs text-gray-500 dark:text-gray-400 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-center gap-1 mb-1">
                 <Shield className="h-3 w-3 text-green-500"/>
-                Your privacy is our priority. No personal data is stored.
+                <span>Safe & anonymous</span>
                 <Heart className="h-3 w-3 text-pink-500"/>
+              </div>
+              <div className="flex justify-center gap-3 text-xs">
+                <a 
+                  href="/terms" 
+                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  Terms
+                </a>
+                <a 
+                  href="/privacy" 
+                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  Privacy
+                </a>
+              </div>
             </div>
             </div>
         </motion.div>
-        <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 1.2 }}
-            className="text-muted-foreground text-sm mt-8 flex items-center gap-1.5"
-        >
-            Ready to make connections? <Heart className="h-4 w-4 text-pink-400"/>
-        </motion.p>
     </div>
   );
 }

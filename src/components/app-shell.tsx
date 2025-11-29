@@ -320,7 +320,7 @@ export function AppShell() {
   }
 
   return (
-    <main className="h-screen w-screen bg-background overflow-hidden">
+    <main className="h-screen w-screen bg-background overflow-x-hidden">
       {isLoggedIn && sessionUser ? <ChatLayout /> : <Login />}
     </main>
   );

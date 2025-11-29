@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /chat
+Disallow: /api/
+
+# Important pages for SEO
+Allow: /terms
+Allow: /privacy
+
+# Sitemap location
+Sitemap: https://anonchat.app/sitemap.xml
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1

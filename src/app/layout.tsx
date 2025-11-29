@@ -5,8 +5,77 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'AnonChat',
-  description: 'A modern anonymous chat application.',
+  title: "AnonChat - Free Anonymous Chat Rooms | Talk to Strangers Online",
+  description: "Join free anonymous chat rooms and talk to strangers online safely. No registration required. Connect with people worldwide in our secure, moderated chat platform. 18+ only.",
+  keywords: [
+    "anonymous chat",
+    "free chat rooms", 
+    "talk to strangers",
+    "online chat",
+    "random chat",
+    "stranger chat",
+    "anonymous talking",
+    "free chatting",
+    "online friends",
+    "meet new people",
+    "chat online free",
+    "anonymous chatting",
+    "stranger chatting",
+    "free online chat",
+    "chat without registration",
+    "anonymous messaging"
+  ].join(", "),
+  authors: [{ name: "AnonChat Team" }],
+  creator: "AnonChat",
+  publisher: "AnonChat",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL('https://anonchat.app'), // Replace with your actual domain
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: "AnonChat - Free Anonymous Chat Rooms | Talk to Strangers Online",
+    description: "Join free anonymous chat rooms and talk to strangers online safely. No registration required. Connect with people worldwide in our secure, moderated chat platform.",
+    url: 'https://anonchat.app',
+    siteName: 'AnonChat',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'AnonChat - Free Anonymous Chat Rooms',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "AnonChat - Free Anonymous Chat Rooms",
+    description: "Talk to strangers online safely in our free anonymous chat rooms. No registration required. Join now!",
+    images: ['/twitter-image.png'],
+    creator: '@anonchat',
+  },
+  robots: {
+    index: false, // Keep false for now due to robots.txt
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    google: 'your-google-verification-code', // Add your Google Search Console verification
+  },
+  category: 'technology',
 };
 
 export default function RootLayout({

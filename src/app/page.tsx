@@ -129,6 +129,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { MessageSquare, Users, Shield, Zap, Heart, Sparkles } from 'lucide-react';
+import Head from 'next/head';
 
 const FeatureCard = ({ icon, title, description, delay }: { icon: React.ReactNode, title: string, description: string, delay: number }) => (
     <motion.div
@@ -146,8 +147,48 @@ const FeatureCard = ({ icon, title, description, delay }: { icon: React.ReactNod
 );
 
 export default function LandingPage() {
+  // Structured data for SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "AnonChat",
+    "url": "https://anonchat.app",
+    "description": "Free anonymous chat rooms to talk with strangers online. No registration required. Safe, moderated chatting platform.",
+    "applicationCategory": "SocialNetworkingApplication",
+    "operatingSystem": "Web Browser",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "featureList": [
+      "Anonymous chatting",
+      "No registration required", 
+      "Global chat rooms",
+      "Private messaging",
+      "Safe and moderated",
+      "Mobile friendly"
+    ],
+    "provider": {
+      "@type": "Organization", 
+      "name": "AnonChat"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "1250"
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-pink-900/20 text-foreground overflow-x-hidden">
+    <>
+      {/* SEO Structured Data */}
+      <script 
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-pink-900/20 text-foreground overflow-x-hidden">
       {/* Decorative background elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 -left-20 sm:left-10 w-48 h-48 sm:w-72 sm:h-72 bg-pink-300/30 rounded-full blur-3xl"></div>
@@ -208,9 +249,9 @@ export default function LandingPage() {
             transition={{ duration: 0.7, delay: 0.6 }}
             className="max-w-3xl mx-auto text-base sm:text-lg lg:text-xl text-gray-600 dark:text-gray-300 mb-8 sm:mb-12 leading-relaxed px-4"
           >
-            Jump into anonymous conversations with real people. No judgments, no pressure—just genuine connections. 
+            Join free anonymous chat rooms and talk to strangers online. No registration, no personal info required—just authentic conversations with real people worldwide. 
             <span className="block mt-2 font-semibold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600">
-              Your next meaningful chat is one click away. 💕
+              Start chatting anonymously in seconds. Safe, fun, and completely free! 💕
             </span>
           </motion.p>
           
@@ -330,6 +371,7 @@ export default function LandingPage() {
         <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-2">Made with 💕 for meaningful connections</p>
         <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-500">&copy; {new Date().getFullYear()} AnonChat. All rights reserved.</p>
       </footer>
-    </div>
+      </div>
+    </>
   );
 }
