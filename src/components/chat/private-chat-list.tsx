@@ -13,6 +13,7 @@ import { type ChatRoom, type User } from '@/types';
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '../ui/sidebar';
+import { getFlag } from '@/lib/country-utils';
 
 function PrivateChatListItem({ chatRoomId }: { chatRoomId: string }) {
     const dispatch = useDispatch();
@@ -66,6 +67,19 @@ function PrivateChatListItem({ chatRoomId }: { chatRoomId: string }) {
                 <div className="flex-1">
                     <p className="font-semibold">{participant.username}</p>
                     <p className="text-xs text-muted-foreground">{participant.age} / {participant.gender}</p>
+                    {participant.country && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <span>
+                                {participant.countryCode && participant.countryCode.length === 2 
+                                    ? String.fromCodePoint(...participant.countryCode.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0)))
+                                    : '🌍'
+                                }
+                            </span>
+                            <span className="truncate">
+                                {participant.state ? `${participant.state}, ${participant.country}` : participant.country}
+                            </span>
+                        </p>
+                    )}
                 </div>
                 {unreadCount > 0 && (
                     <Badge variant="destructive" className="h-6 w-6 flex items-center justify-center p-0">{unreadCount > 9 ? '9+' : unreadCount}</Badge>

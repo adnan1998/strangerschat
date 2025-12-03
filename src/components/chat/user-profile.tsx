@@ -67,6 +67,7 @@ import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { login } from '@/lib/redux/slices/sessionSlice';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { type Gender } from '@/types';
+import { getFlag } from '@/lib/country-utils';
 
 
 export function UserProfile() {
@@ -129,6 +130,19 @@ export function UserProfile() {
             </SelectContent>
           </Select>
         </div>
+        {user.country && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+            <span>
+              {user.countryCode && user.countryCode.length === 2 
+                ? String.fromCodePoint(...user.countryCode.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0)))
+                : '🌍'
+              }
+            </span>
+            <span className="truncate">
+              {user.state ? `${user.state}, ${user.country}` : user.country}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

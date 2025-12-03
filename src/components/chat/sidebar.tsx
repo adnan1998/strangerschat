@@ -105,6 +105,10 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Globe, Users, MessageSquare } from "lucide-react";
 import { logoutAndLeave } from "@/lib/redux/slices/sessionSlice";
 import { setActiveChatRoom } from "@/lib/redux/slices/chatSlice";
+import { ROOM_CATEGORIES, getRoomById } from "@/lib/content-filter";
+import { useRoomUserCounts } from "@/hooks/useRoomUserCount";
+import { updateUserCurrentRoomNonBlocking } from "@/lib/user-room-tracker";
+import { useFirestore } from "@/firebase";
 import { UserProfile } from "./user-profile";
 import { UserList } from "./user-list";
 import { PrivateChatList } from "./private-chat-list";
@@ -119,8 +123,11 @@ import { type RootState, type AppDispatch } from "@/lib/redux/store";
 
 export function AppSidebar() {
   const dispatch: AppDispatch = useDispatch();
-  const { unreadCounts } = useSelector((state: RootState) => state.chat);
+  const { unreadCounts, activeChatRoomId } = useSelector((state: RootState) => state.chat);
+  const { user } = useSelector((state: RootState) => state.session);
   const { setOpenMobile } = useSidebar();
+  const firestore = useFirestore();
+  const { userCounts, isLoading } = useRoomUserCounts();
 
   const unreadPrivateMessages = Object.entries(unreadCounts)
     .filter(([key]) => key !== 'global')
@@ -130,10 +137,17 @@ export function AppSidebar() {
     dispatch(logoutAndLeave());
   };
 
-  const handleGlobalLobbyClick = () => {
-    dispatch(setActiveChatRoom('global'));
+  const handleRoomClick = (roomId: string) => {
+    // Update Redux state
+    dispatch(setActiveChatRoom(roomId));
+    
+    // Update Firebase with current room
+    if (user?.id && firestore) {
+      updateUserCurrentRoomNonBlocking(firestore, user.id, roomId);
+    }
+    
     setOpenMobile(false);
-  }
+  };
 
   return (
     <>
@@ -159,10 +173,86 @@ export function AppSidebar() {
                     )}
                 </TabsTrigger>
             </TabsList>
-            <TabsContent value="lobby" className="flex-1 p-2">
-                <Button variant="ghost" className="w-full justify-start text-base" onClick={handleGlobalLobbyClick}>
-                    # Global Lobby
-                </Button>
+            <TabsContent value="lobby" className="flex-1 p-2 overflow-auto">
+                <div className="space-y-4">
+                    {/* Global Room */}
+                    <div>
+                        <h4 className="text-xs font-semibold text-muted-foreground mb-2 px-2">GLOBAL</h4>
+                        {ROOM_CATEGORIES.global.map((room) => {
+                            const userCount = userCounts[room.id] || 0;
+                            return (
+                                <Button 
+                                    key={room.id}
+                                    variant={activeChatRoomId === room.id ? "secondary" : "ghost"}
+                                    className="w-full justify-between text-sm mb-1" 
+                                    onClick={() => handleRoomClick(room.id)}
+                                >
+                                    <div className="flex items-center">
+                                        <span className="mr-2">{room.icon}</span>
+                                        {room.name}
+                                    </div>
+                                    {!isLoading && (
+                                        <span className="text-xs bg-pink-200 dark:bg-pink-800 text-pink-800 dark:text-pink-200 px-2 py-1 rounded-full">
+                                            {userCount}
+                                        </span>
+                                    )}
+                                </Button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Regional Rooms */}
+                    <div>
+                        <h4 className="text-xs font-semibold text-muted-foreground mb-2 px-2">REGIONAL</h4>
+                        {ROOM_CATEGORIES.regional.map((room) => {
+                            const userCount = userCounts[room.id] || 0;
+                            return (
+                                <Button 
+                                    key={room.id}
+                                    variant={activeChatRoomId === room.id ? "secondary" : "ghost"}
+                                    className="w-full justify-between text-sm mb-1" 
+                                    onClick={() => handleRoomClick(room.id)}
+                                >
+                                    <div className="flex items-center">
+                                        <span className="mr-2">{room.icon}</span>
+                                        {room.name}
+                                    </div>
+                                    {!isLoading && (
+                                        <span className="text-xs bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">
+                                            {userCount}
+                                        </span>
+                                    )}
+                                </Button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Interest Rooms */}
+                    <div>
+                        <h4 className="text-xs font-semibold text-muted-foreground mb-2 px-2">INTERESTS</h4>
+                        {ROOM_CATEGORIES.interests.map((room) => {
+                            const userCount = userCounts[room.id] || 0;
+                            return (
+                                <Button 
+                                    key={room.id}
+                                    variant={activeChatRoomId === room.id ? "secondary" : "ghost"}
+                                    className="w-full justify-between text-sm mb-1" 
+                                    onClick={() => handleRoomClick(room.id)}
+                                >
+                                    <div className="flex items-center">
+                                        <span className="mr-2">{room.icon}</span>
+                                        {room.name}
+                                    </div>
+                                    {!isLoading && (
+                                        <span className="text-xs bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 px-2 py-1 rounded-full">
+                                            {userCount}
+                                        </span>
+                                    )}
+                                </Button>
+                            );
+                        })}
+                    </div>
+                </div>
             </TabsContent>
             <TabsContent value="users" className="flex-1 overflow-auto">
                 <UserList />

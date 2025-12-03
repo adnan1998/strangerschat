@@ -111,6 +111,7 @@ import { Users, Globe } from "lucide-react";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { type ChatRoom, type User } from "@/types";
+import { getRoomById, getDefaultRoom } from "@/lib/content-filter";
 import { useMemo, useEffect } from "react";
 
 export function ChatPanel() {
@@ -148,8 +149,19 @@ export function ChatPanel() {
 
   const { data: privateChatUser } = useDoc<User>(privateChatUserRef);
   
-  const isGlobal = activeChatRoomId === 'global';
-  const chatName = isGlobal ? "Global Lobby" : privateChatUser?.username || "Chat";
+  // Get room information
+  const currentRoom = getRoomById(activeChatRoomId || 'global') || getDefaultRoom();
+  const isPrivateChat = chatRoom?.type === 'private';
+  const isPublicRoom = !isPrivateChat;
+  
+  // Determine chat name and description
+  const chatName = isPrivateChat 
+    ? privateChatUser?.username || "Private Chat"
+    : currentRoom.name;
+  
+  const chatDescription = isPrivateChat
+    ? `${privateChatUser?.age} / ${privateChatUser?.gender}`
+    : currentRoom.description;
 
   return (
     <div className="flex h-screen flex-col bg-background">
@@ -159,10 +171,10 @@ export function ChatPanel() {
             
             {/* Enhanced chat icon */}
             <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center shadow-lg shrink-0">
-              {isGlobal ? (
-                <span className="text-lg sm:text-xl">🌍</span>
-              ) : (
+              {isPrivateChat ? (
                 <span className="text-lg sm:text-xl">💬</span>
+              ) : (
+                <span className="text-lg sm:text-xl">{currentRoom.icon}</span>
               )}
             </div>
             
@@ -171,21 +183,23 @@ export function ChatPanel() {
                     {chatName}
                 </h2>
                 <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 flex items-center gap-1 sm:gap-2">
-                    {isGlobal ? (
+                    {isPrivateChat ? (
+                        privateChatUser ? (
+                            <>
+                                <span className="text-sm sm:text-base">{privateChatUser.gender === 'Male' ? '👨' : '👩'}</span>
+                                <span>{privateChatUser.age} / {privateChatUser.gender}</span>
+                                <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                                <span className="text-xs text-green-600 dark:text-green-400 hidden sm:inline">Online</span>
+                            </>
+                        ) : (
+                            <span>Loading...</span>
+                        )
+                    ) : (
                         <>
                             <span className="text-sm sm:text-base">✨</span>
-                            <span className="hidden sm:inline">Anonymous conversations await</span>
-                            <span className="sm:hidden">Global chat</span>
+                            <span className="hidden sm:inline">{chatDescription}</span>
+                            <span className="sm:hidden">{currentRoom.name}</span>
                         </>
-                    ) : privateChatUser ? (
-                        <>
-                            <span className="text-sm sm:text-base">{privateChatUser.gender === 'Male' ? '👨' : '👩'}</span>
-                            <span>{privateChatUser.age} / {privateChatUser.gender}</span>
-                            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-                            <span className="text-xs text-green-600 dark:text-green-400 hidden sm:inline">Online</span>
-                        </>
-                    ) : (
-                        <span>Loading...</span>
                     )}
                 </div>
             </div>
@@ -194,7 +208,7 @@ export function ChatPanel() {
         {/* Status badge */}
         <div className="hidden sm:flex items-center gap-1 px-3 py-1 bg-pink-200/50 dark:bg-pink-800/30 rounded-full text-xs font-semibold text-pink-700 dark:text-pink-300 shrink-0">
             <span className="h-2 w-2 rounded-full bg-pink-500 animate-pulse"></span>
-            <span>{isGlobal ? 'Live Chat' : 'Private'}</span>
+            <span>{isPrivateChat ? 'Private' : 'Live Chat'}</span>
         </div>
       </header>
       <MessageArea />

@@ -64,17 +64,22 @@ export function MessageArea() {
           const messagesQuery = query(messagesRef, orderBy('timestamp', 'desc'), limit(1));
   
           const messageUnsub = onSnapshot(messagesQuery, (msgSnapshot) => {
-             if (isInitialLoad.current && chatRoomId === activeChatRoomId) return;
-             
              msgSnapshot.docChanges().forEach((msgChange) => {
                 if (msgChange.type === 'added') {
                     const message = msgChange.doc.data() as MessageType;
-                    // Check if message is new and not from current user, and chat is not active
-                    if (message.senderId !== currentUser.id && chatRoomId !== activeChatRoomId) {
-                       dispatch(incrementUnread(chatRoomId));
-                       // Play notification sound for messages in inactive chats
-                       playNotification().catch(console.warn);
-                    }
+                    
+                    // Skip if it's from current user
+                    if (message.senderId === currentUser.id) return;
+                    
+                    // Skip if chat is currently active (user is viewing it)
+                    if (chatRoomId === activeChatRoomId) return;
+                    
+                    // Skip initial load to avoid counting old messages as new
+                    if (isInitialLoad.current) return;
+                    
+                    // Now increment unread count and play notification
+                    dispatch(incrementUnread(chatRoomId));
+                    playNotification().catch(console.warn);
                 }
              })
           });

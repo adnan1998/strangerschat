@@ -217,16 +217,113 @@ export function isMessageAllowed(message: string): { allowed: boolean; reason?: 
   return { allowed: result.allowed, reason: result.reason };
 }
 
-// Safe categories for chat rooms
-export const SAFE_CATEGORIES = [
-  { id: 'general', name: 'General Chat', icon: '💬' },
-  { id: 'hobbies', name: 'Hobbies & Interests', icon: '🎨' },
-  { id: 'gaming', name: 'Gaming', icon: '🎮' },
-  { id: 'music', name: 'Music & Entertainment', icon: '🎵' },
-  { id: 'technology', name: 'Technology', icon: '💻' },
-  { id: 'books', name: 'Books & Reading', icon: '📚' },
-  { id: 'movies', name: 'Movies & TV', icon: '🎬' },
-  { id: 'sports', name: 'Sports & Fitness', icon: '⚽' },
-  { id: 'travel', name: 'Travel & Culture', icon: '✈️' },
-  { id: 'food', name: 'Food & Cooking', icon: '🍕' }
+// Chat room definitions
+export const CHAT_ROOMS = [
+  // Global room (default)
+  { 
+    id: 'global', 
+    name: 'Global Lobby', 
+    icon: '🌍', 
+    description: 'Chat with people from around the world',
+    category: 'global',
+    isDefault: true
+  },
+  
+  // Regional rooms
+  { 
+    id: 'india', 
+    name: 'India Chat', 
+    icon: '🇮🇳', 
+    description: 'Connect with people from India',
+    category: 'regional'
+  },
+  { 
+    id: 'usa', 
+    name: 'USA Chat', 
+    icon: '🇺🇸', 
+    description: 'Chat with people from United States',
+    category: 'regional'
+  },
+  { 
+    id: 'uk', 
+    name: 'UK Chat', 
+    icon: '🇬🇧', 
+    description: 'Connect with people from United Kingdom',
+    category: 'regional'
+  },
+  { 
+    id: 'canada', 
+    name: 'Canada Chat', 
+    icon: '🇨🇦', 
+    description: 'Chat with people from Canada',
+    category: 'regional'
+  },
+  
+  // Interest-based rooms
+  { 
+    id: 'books', 
+    name: 'Books & Reading', 
+    icon: '📚', 
+    description: 'Discuss books, literature, and reading',
+    category: 'interests'
+  },
+  { 
+    id: 'gaming', 
+    name: 'Gaming', 
+    icon: '🎮', 
+    description: 'Talk about games, gaming, and esports',
+    category: 'interests'
+  },
+  { 
+    id: 'movies', 
+    name: 'Movies & TV', 
+    icon: '🎬', 
+    description: 'Discuss movies, TV shows, and entertainment',
+    category: 'interests'
+  },
+  { 
+    id: 'music', 
+    name: 'Music', 
+    icon: '🎵', 
+    description: 'Share and discuss music of all genres',
+    category: 'interests'
+  },
+  { 
+    id: 'technology', 
+    name: 'Technology', 
+    icon: '💻', 
+    description: 'Tech talks, gadgets, and innovation',
+    category: 'interests'
+  },
+  { 
+    id: 'sports', 
+    name: 'Sports', 
+    icon: '⚽', 
+    description: 'Sports discussions and fitness talks',
+    category: 'interests'
+  },
+  { 
+    id: 'food', 
+    name: 'Food & Cooking', 
+    icon: '🍕', 
+    description: 'Share recipes and food experiences',
+    category: 'interests'
+  }
 ];
+
+// Group rooms by category for UI display
+export const ROOM_CATEGORIES = {
+  global: CHAT_ROOMS.filter(room => room.category === 'global'),
+  regional: CHAT_ROOMS.filter(room => room.category === 'regional'),
+  interests: CHAT_ROOMS.filter(room => room.category === 'interests')
+};
+
+// Get room by ID
+export function getRoomById(roomId: string) {
+  return CHAT_ROOMS.find(room => room.id === roomId);
+}
+
+// Get default room
+export function getDefaultRoom() {
+  return CHAT_ROOMS.find(room => room.isDefault) || CHAT_ROOMS[0];
+}

@@ -175,6 +175,9 @@ export function MessageInput() {
       sender: user.username, // Denormalized for display
       content: messageResult.filteredMessage, // Use the filtered message
       timestamp: serverTimestamp(),
+      country: user.country, // Include user location
+      countryCode: user.countryCode, // Include country code for flag
+      state: user.state,
     };
     
     addDocumentNonBlocking(messageDocRef, newMessage);

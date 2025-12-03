@@ -247,6 +247,7 @@
 
 "use client";
 
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -274,7 +275,23 @@ import { useAudioFeedback } from "@/hooks/useAudioFeedback";
 import { isUsernameAllowed } from "@/lib/content-filter";
 import { SafetyNotice, AgeVerificationNotice, SafetyFooter } from "@/components/safety-notice";
 import { motion } from 'framer-motion';
-import { MessageCircle, Sparkles, User as UserIcon, Users, Cake, Shield, Heart, Rocket } from "lucide-react";
+import { MessageCircle, Sparkles, User as UserIcon, Users, Cake, Shield, Heart, Rocket, MapPin, Globe, Check, ChevronDown } from "lucide-react";
+import { Country, State } from 'country-state-city';
+import { getCountryFlag } from '@/lib/country-utils';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 
 const formSchema = z.object({
@@ -283,6 +300,12 @@ const formSchema = z.object({
     required_error: "Please select a gender.",
   }),
   age: z.coerce.number().min(18, "You must be 18 or older to chat.").max(99, "Please enter a valid age."),
+  country: z.string().min(1, {
+    message: "Please select your country.",
+  }),
+  countryCode: z.string().min(1),
+  state: z.string().optional(), // Optional since some countries don't have states
+  stateCode: z.string().optional(),
 });
 
 export default function Login() {
@@ -290,14 +313,52 @@ export default function Login() {
   const auth = useAuth();
   const { playSuccess } = useAudioFeedback();
   
+  // Get countries and manage state for dynamic state dropdown
+  const countries = Country.getAllCountries();
+  const [selectedCountry, setSelectedCountry] = useState<string>('');
+  const [availableStates, setAvailableStates] = useState<any[]>([]);
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [stateOpen, setStateOpen] = useState(false);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       username: typeof window !== 'undefined' ? localStorage.getItem('last-username') || '' : '',
       gender: "Female",
       age: 18,
+      country: '',
+      countryCode: '',
+      state: '',
+      stateCode: '',
     },
   });
+
+  // Handle country selection and update available states
+  const handleCountryChange = (countryCode: string) => {
+    const country = countries.find(c => c.isoCode === countryCode);
+    if (country) {
+      setSelectedCountry(countryCode);
+      const states = State.getStatesOfCountry(countryCode);
+      setAvailableStates(states);
+      
+      // Update form values
+      form.setValue('country', country.name);
+      form.setValue('countryCode', country.isoCode);
+      
+      // Clear state selection when country changes
+      form.setValue('state', '');
+      form.setValue('stateCode', '');
+    }
+  };
+
+  // Handle state selection
+  const handleStateChange = (stateCode: string) => {
+    const state = availableStates.find(s => s.isoCode === stateCode);
+    if (state) {
+      form.setValue('state', state.name);
+      form.setValue('stateCode', state.isoCode);
+    }
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!auth) return;
@@ -430,6 +491,156 @@ export default function Login() {
                     )}
                     />
                 </div>
+
+                {/* Country and State Selection */}
+                <div className="grid grid-cols-1 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="countryCode"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="flex items-center gap-2 font-semibold text-muted-foreground">
+                                    <Globe className="h-4 w-4 text-primary"/>
+                                    Country
+                                </FormLabel>
+                                <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={countryOpen}
+                                                className="w-full justify-between bg-white/50 focus:bg-white hover:bg-white"
+                                            >
+                                                {field.value ? (
+                                                    <span className="flex items-center gap-2">
+                                                        <span className="text-base">
+                                                            {field.value ? String.fromCodePoint(...field.value.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0))) : '🌍'}
+                                                        </span>
+                                                        <span>{countries.find((country) => country.isoCode === field.value)?.name}</span>
+                                                    </span>
+                                                ) : (
+                                                    "Select your country..."
+                                                )}
+                                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Search countries..." className="h-9" />
+                                            <CommandList>
+                                                <CommandEmpty>No country found.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {countries.map((country) => (
+                                                        <CommandItem
+                                                            value={country.name}
+                                                            key={country.isoCode}
+                                                            onSelect={() => {
+                                                                field.onChange(country.isoCode);
+                                                                handleCountryChange(country.isoCode);
+                                                                setCountryOpen(false);
+                                                            }}
+                                                            className="flex items-center gap-2"
+                                                        >
+                                                            <span className="text-base flex-shrink-0">
+                                                             {country.isoCode ? String.fromCodePoint(...country.isoCode.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0))) : '🌍'}
+                                                         </span>
+                                                            <span className="flex-1">{country.name}</span>
+                                                            <Check
+                                                                className={cn(
+                                                                    "h-4 w-4 flex-shrink-0",
+                                                                    country.isoCode === field.value
+                                                                        ? "opacity-100"
+                                                                        : "opacity-0"
+                                                                )}
+                                                            />
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="stateCode"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="flex items-center gap-2 font-semibold text-muted-foreground">
+                                    <MapPin className="h-4 w-4 text-primary"/>
+                                    State / Province (Optional)
+                                </FormLabel>
+                                <Popover open={stateOpen} onOpenChange={setStateOpen}>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={stateOpen}
+                                                className="w-full justify-between bg-white/50 focus:bg-white hover:bg-white"
+                                                disabled={!selectedCountry}
+                                            >
+                                                {field.value && availableStates.length > 0
+                                                    ? availableStates.find((state) => state.isoCode === field.value)?.name
+                                                    : !selectedCountry 
+                                                        ? "Select country first..."
+                                                        : availableStates.length === 0
+                                                            ? "No states available"
+                                                            : "Select state/province..."}
+                                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Search states/provinces..." className="h-9" />
+                                            <CommandList>
+                                                {availableStates.length === 0 ? (
+                                                    <CommandEmpty>No states/provinces available for this country.</CommandEmpty>
+                                                ) : (
+                                                    <>
+                                                        <CommandEmpty>No state found.</CommandEmpty>
+                                                        <CommandGroup>
+                                                            {availableStates.map((state) => (
+                                                                <CommandItem
+                                                                    value={state.name}
+                                                                    key={state.isoCode}
+                                                                    onSelect={() => {
+                                                                        field.onChange(state.isoCode);
+                                                                        handleStateChange(state.isoCode);
+                                                                        setStateOpen(false);
+                                                                    }}
+                                                                >
+                                                                    {state.name}
+                                                                    <Check
+                                                                        className={cn(
+                                                                            "ml-auto h-4 w-4",
+                                                                            state.isoCode === field.value
+                                                                                ? "opacity-100"
+                                                                                : "opacity-0"
+                                                                        )}
+                                                                    />
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </>
+                                                )}
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+
                 <Button type="submit" className="w-full text-lg font-semibold bg-gradient-to-r from-pink-500 to-purple-600 hover:shadow-lg hover:shadow-purple-500/30 transition-shadow duration-300" size="lg">
                     <MessageCircle className="mr-2 h-5 w-5"/>
                     Enter the Chat

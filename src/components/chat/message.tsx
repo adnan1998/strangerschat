@@ -93,6 +93,7 @@ import { type RootState } from "@/lib/redux/store";
 import { type Message as MessageType } from "@/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ReportButton } from "./report-button";
+import { getFlag } from "@/lib/country-utils";
 
 interface MessageProps {
   message: MessageType;
@@ -138,7 +139,20 @@ export function Message({ message }: MessageProps) {
           )}
         >
           {!isSelf && (
-            <p className="mb-1 text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-600">{message.sender}</p>
+            <div className="mb-1">
+              <p className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-600">{message.sender}</p>
+              {message.country && (
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                  <span>
+                    {message.countryCode && message.countryCode.length === 2 
+                      ? String.fromCodePoint(...message.countryCode.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0)))
+                      : '🌍'
+                    }
+                  </span>
+                  <span>{message.state ? `${message.state}, ${message.country}` : message.country}</span>
+                </p>
+              )}
+            </div>
           )}
           <p className="text-sm" style={{ overflowWrap: 'break-word', wordWrap: 'break-word', hyphens: 'auto' }}>
               {message.content}

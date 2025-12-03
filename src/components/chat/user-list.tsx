@@ -218,6 +218,7 @@ import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useSidebar } from '../ui/sidebar';
+import { getFlag } from '@/lib/country-utils';
 
 
 export function UserList() {
@@ -368,11 +369,26 @@ export function UserList() {
                   <div className="font-semibold text-sm text-gray-800 dark:text-gray-200 group-hover:text-pink-700 dark:group-hover:text-pink-300 transition-colors truncate">
                     {user.username}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                    <span className="text-xs">{user.gender === 'Male' ? '👨' : '👩'}</span>
-                    <span>{user.age}</span>
-                    <span>/</span>
-                    <span>{user.gender}</span>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs">{user.gender === 'Male' ? '👨' : '👩'}</span>
+                      <span>{user.age}</span>
+                      <span>/</span>
+                      <span>{user.gender}</span>
+                    </div>
+                    {user.country && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="text-xs">
+                          {user.countryCode && user.countryCode.length === 2 
+                            ? String.fromCodePoint(...user.countryCode.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0)))
+                            : '🌍'
+                          }
+                        </span>
+                        <span className="text-xs truncate">
+                          {user.state ? `${user.state}, ${user.country}` : user.country}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
